@@ -3,5 +3,5 @@
 version = 4
 
 [[package]]
-name = "smiles-parser"
+name = "smiles-to-prolog-parser"
 version = "0.1.0"

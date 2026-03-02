@@ -1,39 +1,38 @@
-mod token;
-mod graph;
-use smiles_parser::token::tokenize;
-use smiles_parser::graph::build_from_smiles;
+use smiles_to_prolog_parser::smiles_to_prolog;
+use std::io::{self, BufRead};
 
 fn main() {
-    let examples = [
-        ("methane", "C"),
-        ("ethanol", "CCO"),
-        ("acetic acid", "CC(=O)O"),
-        ("benzene", "c1ccccc1"),
-        ("naphthalene", "c1ccc2ccccc2c1"),
-        ("toluene", "Cc1ccccc1"),
-        ("biphenyl", "c1ccccc1-c2ccccc2"),
-        ("pyridine", "c1ccncc1"),
-    ];
+    let args: Vec<String> = std::env::args().skip(1).collect();
 
-    for (name, smiles) in &examples {
-        println!("=== {} ({}) ===", name, smiles);
-        match tokenize(smiles) {
-            Ok(tokens) => println!("  tokens: {:?}", tokens),
-            Err(e) => { println!("  tokenize error: {}", e); continue; }
-        }
-        match build_from_smiles(smiles) {
-            Ok(g) => {
-                println!("  atoms: {}, ring_bonds: {:?}", g.atom_count(), g.ring_bonds);
-                for (i, a) in g.atoms.iter().enumerate() {
-                    let nbrs: Vec<String> = g.neighbors(i).iter()
-                        .map(|e| format!("{}({:?})", e.target, e.bond_type))
-                        .collect();
-                    println!("    [{}] {} aro={} h={} nbrs=[{}]",
-                        i, a.element, a.aromatic, a.implicit_hcount, nbrs.join(", "));
+    if args.is_empty() {
+        // Read SMILES from stdin, one per line
+        let stdin = io::stdin();
+        for line in stdin.lock().lines() {
+            match line {
+                Ok(smiles) => {
+                    let smiles = smiles.trim().to_string();
+                    if smiles.is_empty() || smiles.starts_with('#') {
+                        continue;
+                    }
+                    convert(&smiles);
+                }
+                Err(e) => {
+                    eprintln!("Error reading stdin: {}", e);
+                    std::process::exit(1);
                 }
             }
-            Err(e) => println!("  graph error: {}", e),
         }
-        println!();
+    } else {
+        // Convert each argument as a SMILES string
+        for smiles in &args {
+            convert(smiles);
+        }
+    }
+}
+
+fn convert(smiles: &str) {
+    match smiles_to_prolog(smiles) {
+        Ok(term) => println!("{}", term),
+        Err(e) => eprintln!("Error [{}]: {}", smiles, e),
     }
 }

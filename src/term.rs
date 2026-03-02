@@ -133,7 +133,7 @@ fn atomic_number(element: &str) -> u8 {
 fn subterm_sort_key(t: &SubTerm) -> (u8, Complexity, u8) {
     match t {
         SubTerm::H => (0, Complexity::hydrogen(), 1),
-        SubTerm::Atom { element, subs, .. } => {
+        SubTerm::Atom { element, subs: _, .. } => {
             let c = subterm_complexity(t);
             (1, c, atomic_number(element))
         }
@@ -155,6 +155,7 @@ fn sort_subs(subs: &mut Vec<SubTerm>) {
 struct DetectedRing {
     members: Vec<usize>,
     /// The ring closure bond (a, b) that defined this ring.
+    #[allow(dead_code)]
     closure: (usize, usize),
 }
 

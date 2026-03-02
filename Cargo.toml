@@ -1,6 +1,12 @@
 [package]
-name = "smiles-parser"
+name = "smiles-to-prolog-parser"
 version = "0.1.0"
 edition = "2024"
+description = "Converts SMILES molecular notation into Prolog term representations for use in logic programming and inductive learning systems"
+license = "MIT"
+repository = "https://github.com/JamesTrewern/smiles-to-prolog-parser"
+keywords = ["smiles", "prolog", "chemistry", "cheminformatics", "molecular"]
+categories = ["science", "parser-implementations"]
+readme = "README.md"
 
 [dependencies]
