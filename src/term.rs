@@ -1,6 +1,6 @@
+use crate::graph::*;
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::fmt;
-use crate::graph::*;
 
 // ── Bond symbol for Prolog output ──
 
@@ -49,9 +49,16 @@ pub enum SubTerm {
     /// Bare `h` shorthand
     H,
     /// (bond, element, subs)
-    Atom { bond: BondSymbol, element: String, subs: Vec<SubTerm> },
+    Atom {
+        bond: BondSymbol,
+        element: String,
+        subs: Vec<SubTerm>,
+    },
     /// (bond, ring(members))
-    Ring { bond: BondSymbol, members: Vec<RingMember> },
+    Ring {
+        bond: BondSymbol,
+        members: Vec<RingMember>,
+    },
 }
 
 /// A member within a ring(...) term.
@@ -72,15 +79,20 @@ pub struct RingMember {
 struct Complexity(usize, usize, usize);
 
 impl Complexity {
-    fn hydrogen() -> Self { Complexity(0, 0, 1) }
+    fn hydrogen() -> Self {
+        Complexity(0, 0, 1)
+    }
 }
 
 fn subterm_complexity(t: &SubTerm) -> Complexity {
     match t {
         SubTerm::H => Complexity::hydrogen(),
         SubTerm::Atom { subs, .. } => {
-            let child_max = subs.iter().map(|s| subterm_complexity(s))
-                .max().unwrap_or(Complexity(0, 0, 0));
+            let child_max = subs
+                .iter()
+                .map(|s| subterm_complexity(s))
+                .max()
+                .unwrap_or(Complexity(0, 0, 0));
             let (h, t) = count_atoms_subterm_list(subs);
             Complexity(child_max.0 + 1, h + 1, t + 1) // +1 for this atom
         }
@@ -90,7 +102,9 @@ fn subterm_complexity(t: &SubTerm) -> Complexity {
             let mut total = 0usize;
             for m in members {
                 let mc = ring_member_complexity(m);
-                if mc.0 > max_depth { max_depth = mc.0; }
+                if mc.0 > max_depth {
+                    max_depth = mc.0;
+                }
                 heavy += mc.1;
                 total += mc.2;
             }
@@ -100,8 +114,12 @@ fn subterm_complexity(t: &SubTerm) -> Complexity {
 }
 
 fn ring_member_complexity(m: &RingMember) -> Complexity {
-    let child_max = m.subs.iter().map(|s| subterm_complexity(s))
-        .max().unwrap_or(Complexity(0, 0, 0));
+    let child_max = m
+        .subs
+        .iter()
+        .map(|s| subterm_complexity(s))
+        .max()
+        .unwrap_or(Complexity(0, 0, 0));
     let (h, t) = count_atoms_subterm_list(&m.subs);
     Complexity(child_max.0 + 1, h + 1, t + 1)
 }
@@ -121,9 +139,21 @@ fn count_atoms_subterm_list(subs: &[SubTerm]) -> (usize, usize) {
 /// Atomic number for tiebreaking. Higher = heavier.
 fn atomic_number(element: &str) -> u8 {
     match element {
-        "h" => 1, "b" => 5, "c" => 6, "n" => 7, "o" => 8,
-        "f" => 9, "p" => 15, "s" => 16, "cl" => 17, "br" => 35, "i" => 53,
-        "fe" => 26, "na" => 11, "se" => 34, "as" => 33,
+        "h" => 1,
+        "b" => 5,
+        "c" => 6,
+        "n" => 7,
+        "o" => 8,
+        "f" => 9,
+        "p" => 15,
+        "s" => 16,
+        "cl" => 17,
+        "br" => 35,
+        "i" => 53,
+        "fe" => 26,
+        "na" => 11,
+        "se" => 34,
+        "as" => 33,
         _ => 0, // unknown
     }
 }
@@ -133,7 +163,9 @@ fn atomic_number(element: &str) -> u8 {
 fn subterm_sort_key(t: &SubTerm) -> (u8, Complexity, u8) {
     match t {
         SubTerm::H => (0, Complexity::hydrogen(), 1),
-        SubTerm::Atom { element, subs: _, .. } => {
+        SubTerm::Atom {
+            element, subs: _, ..
+        } => {
             let c = subterm_complexity(t);
             (1, c, atomic_number(element))
         }
@@ -161,7 +193,11 @@ struct DetectedRing {
 
 /// Set of edges that are ring closure bonds (stored as sorted tuples).
 fn ring_closure_set(graph: &MolGraph) -> HashSet<(usize, usize)> {
-    graph.ring_bonds.iter().map(|&(a, b)| if a < b { (a, b) } else { (b, a) }).collect()
+    graph
+        .ring_bonds
+        .iter()
+        .map(|&(a, b)| if a < b { (a, b) } else { (b, a) })
+        .collect()
 }
 
 /// Is edge (a, b) a ring closure bond?
@@ -197,10 +233,14 @@ fn find_ring_path(
                 }
             }
             // Skip other closure edges
-            if is_ring_closure(node, nbr, closures) && !(node == src || node == dst || nbr == src || nbr == dst) {
+            if is_ring_closure(node, nbr, closures)
+                && !(node == src || node == dst || nbr == src || nbr == dst)
+            {
                 continue;
             }
-            if visited.contains(&nbr) { continue; }
+            if visited.contains(&nbr) {
+                continue;
+            }
             visited.insert(nbr);
             parent.insert(nbr, node);
             if nbr == dst {
@@ -224,10 +264,17 @@ fn find_ring_path(
 /// Detect all rings in the graph.
 fn detect_rings(graph: &MolGraph) -> Vec<DetectedRing> {
     let closures = ring_closure_set(graph);
-    graph.ring_bonds.iter().map(|&(a, b)| {
-        let members = find_ring_path(graph, a, b, &closures);
-        DetectedRing { members, closure: (a, b) }
-    }).collect()
+    graph
+        .ring_bonds
+        .iter()
+        .map(|&(a, b)| {
+            let members = find_ring_path(graph, a, b, &closures);
+            DetectedRing {
+                members,
+                closure: (a, b),
+            }
+        })
+        .collect()
 }
 
 /// Build a map: atom_index → list of ring indices it belongs to.
@@ -255,11 +302,17 @@ fn graph_subtree_size(
     let mut stack = vec![start];
     let mut count = 0;
     while let Some(node) = stack.pop() {
-        if !visited.insert(node) { continue; }
+        if !visited.insert(node) {
+            continue;
+        }
         count += 1;
         for edge in graph.neighbors(node) {
-            if visited.contains(&edge.target) { continue; }
-            if node != start && exclude_ring_members.contains(&edge.target) { continue; }
+            if visited.contains(&edge.target) {
+                continue;
+            }
+            if node != start && exclude_ring_members.contains(&edge.target) {
+                continue;
+            }
             stack.push(edge.target);
         }
     }
@@ -269,7 +322,9 @@ fn graph_subtree_size(
 /// Select which ring should be the root (if any rings exist).
 /// Pick the ring whose members have the most complex external subtrees.
 fn select_root_ring(graph: &MolGraph, rings: &[DetectedRing]) -> usize {
-    if rings.len() == 1 { return 0; }
+    if rings.len() == 1 {
+        return 0;
+    }
     let mut best = 0;
     let mut best_score = 0usize;
     for (ri, ring) in rings.iter().enumerate() {
@@ -312,15 +367,19 @@ pub fn generate_term(graph: &MolGraph) -> MolTerm {
     if rings.is_empty() {
         // No rings — atom root
         let root = select_root_atom(graph);
-        let (element, subs) = build_atom_term(
-            graph, root, &rings, &membership, &closures, &mut visited,
-        );
+        let (element, subs) =
+            build_atom_term(graph, root, &rings, &membership, &closures, &mut visited);
         MolTerm::AtomRoot { element, subs }
     } else {
         // Ring root
         let root_ring_idx = select_root_ring(graph, &rings);
         let members = build_ring_term(
-            graph, root_ring_idx, &rings, &membership, &closures, &mut visited,
+            graph,
+            root_ring_idx,
+            &rings,
+            &membership,
+            &closures,
+            &mut visited,
         );
         MolTerm::RingRoot { members }
     }
@@ -348,30 +407,32 @@ fn build_atom_term(
     // Process neighbors
     for edge in graph.neighbors(atom_idx) {
         let nbr = edge.target;
-        if visited.contains(&nbr) { continue; }
+        if visited.contains(&nbr) {
+            continue;
+        }
 
         let bond = BondSymbol::from_bond_type(edge.bond_type);
 
         // Is neighbor part of a ring we haven't yet consumed?
         if let Some(ring_indices) = membership.get(&nbr) {
             // Find a ring that contains nbr and hasn't been fully visited
-            let ring_to_build = ring_indices.iter().find(|&&ri| {
-                rings[ri].members.iter().any(|&m| !visited.contains(&m))
-            });
+            let ring_to_build = ring_indices
+                .iter()
+                .find(|&&ri| rings[ri].members.iter().any(|&m| !visited.contains(&m)));
             if let Some(&ri) = ring_to_build {
-                let members = build_ring_term(
-                    graph, ri, rings, membership, closures, visited,
-                );
+                let members = build_ring_term(graph, ri, rings, membership, closures, visited);
                 subs.push(SubTerm::Ring { bond, members });
                 continue;
             }
         }
 
         // Regular atom neighbor
-        let (el, child_subs) = build_atom_term(
-            graph, nbr, rings, membership, closures, visited,
-        );
-        subs.push(SubTerm::Atom { bond, element: el, subs: child_subs });
+        let (el, child_subs) = build_atom_term(graph, nbr, rings, membership, closures, visited);
+        subs.push(SubTerm::Atom {
+            bond,
+            element: el,
+            subs: child_subs,
+        });
     }
 
     sort_subs(&mut subs);
@@ -406,11 +467,15 @@ fn build_ring_term(
         let bond = if pos == 0 {
             // Closing bond: from last member back to first
             let last = ring.members[n - 1];
-            let bt = graph.bond_between(last, atom_idx).unwrap_or(BondType::Single);
+            let bt = graph
+                .bond_between(last, atom_idx)
+                .unwrap_or(BondType::Single);
             BondSymbol::from_bond_type(bt)
         } else {
             let prev = ring.members[pos - 1];
-            let bt = graph.bond_between(prev, atom_idx).unwrap_or(BondType::Single);
+            let bt = graph
+                .bond_between(prev, atom_idx)
+                .unwrap_or(BondType::Single);
             BondSymbol::from_bond_type(bt)
         };
 
@@ -421,8 +486,12 @@ fn build_ring_term(
         }
         for edge in graph.neighbors(atom_idx) {
             let nbr = edge.target;
-            if ring_set.contains(&nbr) { continue; } // skip ring neighbors
-            if visited.contains(&nbr) { continue; }
+            if ring_set.contains(&nbr) {
+                continue;
+            } // skip ring neighbors
+            if visited.contains(&nbr) {
+                continue;
+            }
 
             let bond_sym = BondSymbol::from_bond_type(edge.bond_type);
 
@@ -432,29 +501,42 @@ fn build_ring_term(
                     ri != ring_idx && rings[ri].members.iter().any(|&m| !visited.contains(&m))
                 });
                 if let Some(&ri) = ring_to_build {
-                    let members = build_ring_term(
-                        graph, ri, rings, membership, closures, visited,
-                    );
-                    subs.push(SubTerm::Ring { bond: bond_sym, members });
+                    let members = build_ring_term(graph, ri, rings, membership, closures, visited);
+                    subs.push(SubTerm::Ring {
+                        bond: bond_sym,
+                        members,
+                    });
                     continue;
                 }
             }
 
-            let (el, child_subs) = build_atom_term(
-                graph, nbr, rings, membership, closures, visited,
-            );
-            subs.push(SubTerm::Atom { bond: bond_sym, element: el, subs: child_subs });
+            let (el, child_subs) =
+                build_atom_term(graph, nbr, rings, membership, closures, visited);
+            subs.push(SubTerm::Atom {
+                bond: bond_sym,
+                element: el,
+                subs: child_subs,
+            });
         }
         sort_subs(&mut subs);
-        raw_members.push((atom_idx, RingMember { bond, element: atom.element.clone(), subs }));
+        raw_members.push((
+            atom_idx,
+            RingMember {
+                bond,
+                element: atom.element.clone(),
+                subs,
+            },
+        ));
     }
 
     // ── Ring member ordering ──
     // Find the member with the most complex non-ring subtree → goes first.
     // Complexity of a member's subs (excluding H for this comparison).
-    let member_complexity: Vec<Complexity> = raw_members.iter()
+    let member_complexity: Vec<Complexity> = raw_members
+        .iter()
         .map(|(_, m)| {
-            m.subs.iter()
+            m.subs
+                .iter()
                 .map(|s| subterm_complexity(s))
                 .max()
                 .unwrap_or(Complexity(0, 0, 0))
@@ -462,7 +544,9 @@ fn build_ring_term(
         .collect();
 
     // Find the starting position (most complex subtree)
-    let start_pos = member_complexity.iter().enumerate()
+    let start_pos = member_complexity
+        .iter()
+        .enumerate()
         .max_by(|(ia, ca), (ib, cb)| {
             ca.cmp(cb).then_with(|| {
                 let an_a = atomic_number(&raw_members[*ia].1.element);
@@ -545,7 +629,9 @@ fn build_ring_term(
 fn fmt_subs(subs: &[SubTerm], f: &mut fmt::Formatter) -> fmt::Result {
     write!(f, "[")?;
     for (i, s) in subs.iter().enumerate() {
-        if i > 0 { write!(f, ", ")?; }
+        if i > 0 {
+            write!(f, ", ")?;
+        }
         write!(f, "{}", s)?;
     }
     write!(f, "]")
@@ -562,7 +648,9 @@ impl fmt::Display for MolTerm {
             MolTerm::RingRoot { members } => {
                 write!(f, "mol(ring([")?;
                 for (i, m) in members.iter().enumerate() {
-                    if i > 0 { write!(f, ", ")?; }
+                    if i > 0 {
+                        write!(f, ", ")?;
+                    }
                     write!(f, "{}", m)?;
                 }
                 write!(f, "]))")
@@ -575,15 +663,25 @@ impl fmt::Display for SubTerm {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             SubTerm::H => write!(f, "h"),
-            SubTerm::Atom { bond, element, subs } => {
-                write!(f, "({}, {}, ", bond, element)?;
-                fmt_subs(subs, f)?;
-                write!(f, ")")
+            SubTerm::Atom {
+                bond,
+                element,
+                subs,
+            } => {
+                if subs.is_empty() {
+                    write!(f, "({}, {}) ", bond, element)
+                } else {
+                    write!(f, "({}, {}, ", bond, element)?;
+                    fmt_subs(subs, f)?;
+                    write!(f, ")")
+                }
             }
             SubTerm::Ring { bond, members } => {
                 write!(f, "({}, ring([", bond)?;
                 for (i, m) in members.iter().enumerate() {
-                    if i > 0 { write!(f, ", ")?; }
+                    if i > 0 {
+                        write!(f, ", ")?;
+                    }
                     write!(f, "{}", m)?;
                 }
                 write!(f, "]))")
@@ -684,13 +782,19 @@ mod tests {
         // c1ccccc1: all symmetric, all aromatic C with 1H
         let s = prolog("c1ccccc1");
         // All members identical: 6 × (a, c, [h])
-        assert_eq!(s, "mol(ring([(a, c, [h]), (a, c, [h]), (a, c, [h]), (a, c, [h]), (a, c, [h]), (a, c, [h])]))");
+        assert_eq!(
+            s,
+            "mol(ring([(a, c, [h]), (a, c, [h]), (a, c, [h]), (a, c, [h]), (a, c, [h]), (a, c, [h])]))"
+        );
     }
 
     #[test]
     fn cyclohexane() {
         let s = prolog("C1CCCCC1");
-        assert_eq!(s, "mol(ring([(1, c, [h, h]), (1, c, [h, h]), (1, c, [h, h]), (1, c, [h, h]), (1, c, [h, h]), (1, c, [h, h])]))");
+        assert_eq!(
+            s,
+            "mol(ring([(1, c, [h, h]), (1, c, [h, h]), (1, c, [h, h]), (1, c, [h, h]), (1, c, [h, h]), (1, c, [h, h])]))"
+        );
     }
 
     #[test]

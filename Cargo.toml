@@ -1,6 +1,6 @@
 [package]
 name = "smiles-to-prolog-parser"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2024"
 description = "Converts SMILES molecular notation into Prolog term representations for use in logic programming and inductive learning systems"
 license = "MIT"
