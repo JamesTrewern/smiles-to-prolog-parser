@@ -36,7 +36,7 @@ impl fmt::Display for BondSymbol {
 
 // ── Prolog term AST ──
 
-/// A complete molecule term: mol(Element, Subs) or mol(ring(Members))
+/// A complete molecule term: ('n/a',Element, Subs) or ring('n/a',Members))
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum MolTerm {
     AtomRoot { element: String, subs: Vec<SubTerm> },
@@ -641,19 +641,19 @@ impl fmt::Display for MolTerm {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             MolTerm::AtomRoot { element, subs } => {
-                write!(f, "mol({}, ", element)?;
+                write!(f, "('n/a', {}, ", element)?;
                 fmt_subs(subs, f)?;
                 write!(f, ")")
             }
             MolTerm::RingRoot { members } => {
-                write!(f, "mol(ring([")?;
+                write!(f, "ring('n/a', [")?;
                 for (i, m) in members.iter().enumerate() {
                     if i > 0 {
                         write!(f, ", ")?;
                     }
                     write!(f, "{}", m)?;
                 }
-                write!(f, "]))")
+                write!(f, "])")
             }
         }
     }
@@ -669,7 +669,7 @@ impl fmt::Display for SubTerm {
                 subs,
             } => {
                 if subs.is_empty() {
-                    write!(f, "({}, {}) ", bond, element)
+                    write!(f, "({}, {}, [])", bond, element)
                 } else {
                     write!(f, "({}, {}, ", bond, element)?;
                     fmt_subs(subs, f)?;
@@ -677,14 +677,14 @@ impl fmt::Display for SubTerm {
                 }
             }
             SubTerm::Ring { bond, members } => {
-                write!(f, "({}, ring([", bond)?;
+                write!(f, "ring({bond},[")?;
                 for (i, m) in members.iter().enumerate() {
                     if i > 0 {
                         write!(f, ", ")?;
                     }
                     write!(f, "{}", m)?;
                 }
-                write!(f, "]))")
+                write!(f, "])")
             }
         }
     }
@@ -710,18 +710,18 @@ mod tests {
 
     #[test]
     fn methane() {
-        assert_eq!(prolog("C"), "mol(c, [h, h, h, h])");
+        assert_eq!(prolog("C"), "('n/a', c, [h, h, h, h])");
     }
 
     #[test]
     fn water() {
-        assert_eq!(prolog("O"), "mol(o, [h, h])");
+        assert_eq!(prolog("O"), "('n/a', o, [h, h])");
     }
 
     #[test]
     fn hf() {
         // H-F: F has 1 implicit H. Single atom.
-        assert_eq!(prolog("F"), "mol(f, [h])");
+        assert_eq!(prolog("F"), "('n/a', f, [h])");
     }
 
     #[test]
@@ -730,7 +730,7 @@ mod tests {
         // so either is fine. Each has 3H + 1 bond to other.
         let s = prolog("CC");
         // Root C bonded to other C. Both have 3H.
-        assert_eq!(s, "mol(c, [h, h, h, (1, c, [h, h, h])])");
+        assert_eq!(s, "('n/a', c, [h, h, h, (1, c, [h, h, h])])");
     }
 
     #[test]
@@ -745,7 +745,7 @@ mod tests {
         // CH3 complexity: depth=1, heavy=1, total=4
         // OH complexity: depth=1, heavy=1, total=2
         // OH is simpler (fewer total atoms), so OH before CH3
-        assert_eq!(s, "mol(c, [h, h, (1, o, [h]), (1, c, [h, h, h])])");
+        assert_eq!(s, "('n/a', c, [h, h, (1, o, [h]), (1, c, [h, h, h])])");
     }
 
     #[test]
@@ -757,7 +757,7 @@ mod tests {
         // -OH: depth=1, heavy=1, total=2
         // CH3: depth=1, heavy=1, total=4
         // Order: =O(simplest), -OH, CH3(most complex)
-        assert_eq!(s, "mol(c, [(2, o, []), (1, o, [h]), (1, c, [h, h, h])])");
+        assert_eq!(s, "('n/a', c, [(2, o, []), (1, o, [h]), (1, c, [h, h, h])])");
     }
 
     #[test]
@@ -765,14 +765,14 @@ mod tests {
         // C=O: C has degree 1 (to O), O has degree 1 (to C)
         // Tiebreak by atomic number: O(8) > C(6), so O is root
         let s = prolog("C=O");
-        assert_eq!(s, "mol(o, [(2, c, [h, h])])");
+        assert_eq!(s, "('n/a', o, [(2, c, [h, h])])");
     }
 
     #[test]
     fn hcn() {
         // C#N: both degree 1. N(7) > C(6) by atomic number → N is root
         let s = prolog("C#N");
-        assert_eq!(s, "mol(n, [(3, c, [h])])");
+        assert_eq!(s, "('n/a', n, [(3, c, [h])])");
     }
 
     // ── Ring molecules ──
@@ -784,7 +784,7 @@ mod tests {
         // All members identical: 6 × (a, c, [h])
         assert_eq!(
             s,
-            "mol(ring([(a, c, [h]), (a, c, [h]), (a, c, [h]), (a, c, [h]), (a, c, [h]), (a, c, [h])]))"
+            "ring('n/a', [(a, c, [h]), (a, c, [h]), (a, c, [h]), (a, c, [h]), (a, c, [h]), (a, c, [h])])"
         );
     }
 
@@ -793,7 +793,7 @@ mod tests {
         let s = prolog("C1CCCCC1");
         assert_eq!(
             s,
-            "mol(ring([(1, c, [h, h]), (1, c, [h, h]), (1, c, [h, h]), (1, c, [h, h]), (1, c, [h, h]), (1, c, [h, h])]))"
+            "ring('n/a', [(1, c, [h, h]), (1, c, [h, h]), (1, c, [h, h]), (1, c, [h, h]), (1, c, [h, h]), (1, c, [h, h])])"
         );
     }
 
