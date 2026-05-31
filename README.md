@@ -17,7 +17,7 @@ use smiles_to_prolog_parser::smiles_to_prolog;
 
 // Ethanol: CCO
 let term = smiles_to_prolog("CCO").unwrap();
-assert_eq!(term, "mol(c, [(1, c, [h, h, (1, o, [h])]), h, h, h])");
+assert_eq!(term, "('n/a', c, [(1, c, [h, h, (1, o, [h])]), h, h, h])");
 
 // Benzene: c1ccccc1
 let term = smiles_to_prolog("c1ccccc1").unwrap();
@@ -26,11 +26,11 @@ let term = smiles_to_prolog("c1ccccc1").unwrap();
 
 ## Output Format
 
-Molecules are represented as `mol(element, [substituents])` where substituents are ordered simplest-first:
+Molecules are represented as `(bond, element, [substituents])` where substituents are ordered simplest-first: *Bond at root of molecule will be n/a*
 
-- **Hydrogen** appears as bare `h`
+- **Hydrogen** appears as bare `h` (shorthand for `(1,h,[])`)
 - **Atom substituents** appear as `(bond, element, [subs])` where bond is `1` (single), `2` (double), `3` (triple), or `a` (aromatic)
-- **Ring structures** appear as `(bond, ring([members]))` where each member is `(bond, element, [subs])`
+- **Ring structures** appear as `ring(bond, [members])` where each member is either `(bond, element, [subs])` or `ring(bond, [members])`
 
 ## CLI Usage
 
@@ -48,7 +48,7 @@ Add to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-smiles-to-prolog-parser = "0.1"
+smiles-to-prolog-parser = "0.1.2"
 ```
 
 ## License
